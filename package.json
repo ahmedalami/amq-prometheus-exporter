@@ -1,0 +1,28 @@
+{
+  "name": "amq-prometheus-exporter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahmedalami/amq-prometheus-exporter.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ahmedalami/amq-prometheus-exporter/issues"
+  },
+  "homepage": "https://github.com/ahmedalami/amq-prometheus-exporter#readme",
+  "dependencies": {
+    "async": "^2.6.0",
+    "elasticsearch": "^14.0.0",
+    "json2csv": "^3.11.5",
+    "jsonfile": "^4.0.0",
+    "mkdirp": "^0.5.1",
+    "underscore": "^1.8.3",
+    "unirest": "^0.5.1"
+  }
+}
