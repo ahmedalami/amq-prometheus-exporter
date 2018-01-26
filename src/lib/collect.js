@@ -151,7 +151,6 @@ module.exports = function (configuration, callback) {
     });
 
     let baseURl = "https://" + (configuration.master || "localhost" ) + ":" + (configuration.port || 8443) + "/api/v1/namespaces/";
-
     async.concatLimit(commands, LIMIT,
         function (command, done) {
             let url = baseURl + getUrl(command);
