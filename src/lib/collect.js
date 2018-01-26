@@ -134,7 +134,7 @@ function getUrl(command) {
     return command.namespace + "/pods/https:" + command.pod + ":8778/proxy/jolokia" + "/read/org.apache.activemq:" + OBJECT_NAMES_DOMAINS[command.domain].name;
 }
 
-module.exports = function (configuration) {
+module.exports = function (configuration, callback) {
 
     let commands = [];
 
@@ -172,8 +172,12 @@ module.exports = function (configuration) {
                 });
 
         }, function (error, results) {
-            _.each(results, function (result) {
-                fs.appendFileSync(DATA_DIR + "/" + result.domain + ".log", JSON.stringify(result) + "\n");
-            });
+            if (callback) {
+                callback(results);
+            } else {
+                _.each(results, function (result) {
+                    fs.appendFileSync(DATA_DIR + "/" + result.domain + ".log", JSON.stringify(result) + "\n");
+                });
+            }
         });
 };
