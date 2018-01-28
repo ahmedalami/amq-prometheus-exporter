@@ -15,7 +15,7 @@ const NAMESPACE = process.env.NAMESPACE || 'amq';
 const TOKEN = process.env.TOKEN || 'dbyeSDjNN1IJa37ffvRa-e6dZTRIKRSjgW9dgM011JI';
 
 let core;
-if (process.env.IN_CLUSTER === true) {
+if (process.env.IN_CLUSTER === "true") {
     winston.info("Using incluster connection ...");
     core = new Api.Core(Api.config.getInCluster());
 } else {
