@@ -10,18 +10,25 @@ const k8s = require('kubernetes-client');
 const string = require('string');
 
 // Connecting to Kubernetees API
-winston.info("Connecting to Kubernetees API ...");
 const CLUSTER_IP = (process.env.CLUSTER_IP || '192.168.64.7');
 const NAMESPACE = process.env.NAMESPACE || 'amq';
 const TOKEN = process.env.TOKEN || 'dbyeSDjNN1IJa37ffvRa-e6dZTRIKRSjgW9dgM011JI';
 
-const core = new k8s.Core({
-    "url": 'https://' + CLUSTER_IP + ':8443',
-    "namespace": NAMESPACE,
-    "auth": {
-        "bearer": TOKEN
-    }
-});
+let core;
+if (process.env.IN_CLUSTER === true) {
+    winston.info("Using incluster connection ...");
+    core = new Api.Core(Api.config.getInCluster());
+} else {
+    winston.info("Using a remote connection ...");
+
+    core = new k8s.Core({
+        "url": 'https://' + CLUSTER_IP + ':8443',
+        "namespace": NAMESPACE,
+        "auth": {
+            "bearer": TOKEN
+        }
+    });
+}
 
 const register = client.register;
 const Gauge = client.Gauge;
@@ -63,7 +70,7 @@ function collectMetrics(configuration) {
 }
 
 function searchAMQPodsAndCollect(error, result) {
-    if(error) {
+    if (error) {
         winston.error("Unable to list all pods due to : %s", error);
         return;
     }
@@ -104,9 +111,11 @@ app.get('/metrics', function (req, res) {
     res.end(register.metrics());
 });
 
+const COLLECT_PERIOD = process.env.COLLECT_PERIOD_SECONDS ? process.env.COLLECT_PERIOD_SECONDS * 1000 : 10000;
+winston.info("Setup metrics collection to %s seconds", COLLECT_PERIOD / 1000);
 setInterval(() => {
     core.namespaces.po.get(searchAMQPodsAndCollect);
-}, 10000);
+}, COLLECT_PERIOD);
 
 client.collectDefaultMetrics();
 
