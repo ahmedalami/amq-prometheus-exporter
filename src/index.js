@@ -7,12 +7,13 @@ const jsonfile = require('jsonfile');
 const _ = require('underscore');
 const collect = require("./lib/collect");
 const k8s = require('kubernetes-client');
+const string = require('string');
 
 // Connecting to Kubernetees API
 winston.info("Connecting to Kubernetees API ...");
 const CLUSTER_IP = (process.env.CLUSTER_IP || '192.168.64.7');
 const NAMESPACE = process.env.NAMESPACE || 'amq';
-const TOKEN = process.env.TOKEN || 'FUNOo2PMZxtRe19lIfuT3GihuR3VXBehiVo3d9saYQw';
+const TOKEN = process.env.TOKEN || 'dbyeSDjNN1IJa37ffvRa-e6dZTRIKRSjgW9dgM011JI';
 
 const core = new k8s.Core({
     "url": 'https://' + CLUSTER_IP + ':8443',
@@ -35,6 +36,16 @@ function collectMetrics(configuration) {
                 _.each(_.keys(metric), function (key) {
                     let name = ["amq", result.domain, key.toLowerCase()].join("_");
 
+                    let metadatas = {
+                        "domain": result.domain,
+                        "namespace": result.namespace,
+                        "pod": result.pod,
+                    };
+
+                    if (metric[key] && typeof metric[key] === "string") {
+                        metadatas[key.toLowerCase()] = metric[key];
+                    }
+
                     if (metric[key] && typeof metric[key] === "number") {
                         metrics_cache[name] = metrics_cache[name] || new Gauge({
                             "name": name,
@@ -42,11 +53,8 @@ function collectMetrics(configuration) {
                             "labelNames": ["domain", "namespace", "pod"]
                         });
 
-                        metrics_cache[name].set({
-                            "domain": result.domain,
-                            "namespace": result.namespace,
-                            "pod": result.pod,
-                        }, metric[key]);
+
+                        metrics_cache[name].set(metadatas, metric[key]);
                     }
                 });
             });
@@ -54,7 +62,12 @@ function collectMetrics(configuration) {
     });
 }
 
-function searchAMQPodsAndCollect(err, result) {
+function searchAMQPodsAndCollect(error, result) {
+    if(error) {
+        winston.error("Unable to list all pods due to : %s", error);
+        return;
+    }
+
     let brokersPodsNames = [];
     let pods = result.items;
     winston.info("Found %s pods", pods.length);

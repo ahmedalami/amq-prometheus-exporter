@@ -26,6 +26,7 @@
     "kubernetes-client": "^3.18.1",
     "mkdirp": "^0.5.1",
     "prom-client": "^10.2.2",
+    "string": "^3.3.3",
     "underscore": "^1.8.3",
     "unirest": "^0.5.1",
     "winston": "^2.4.0"
