@@ -10,12 +10,18 @@ const k8s = require('kubernetes-client');
 const string = require('string');
 
 // Connecting to Kubernetees API
-const CLUSTER_IP = (process.env.CLUSTER_IP || '192.168.64.7');
+const IN_CLUSTER = process.env.IN_CLUSTER === "true";
+const CLUSTER_IP = process.env.CLUSTER_IP || process.env.KUBERNETES_SERVICE_HOST;
+const CLUSTER_PORT = process.env.CLUSTER_PORT || process.env.KUBERNETES_PORT_443_TCP_PORT;
 const NAMESPACE = process.env.NAMESPACE || 'amq';
-const TOKEN = process.env.TOKEN || 'dbyeSDjNN1IJa37ffvRa-e6dZTRIKRSjgW9dgM011JI';
+const TOKEN = process.env.TOKEN;
+
+if (!TOKEN) {
+    throw new Error("Please provide an authentication token");
+}
 
 let core;
-if (process.env.IN_CLUSTER === "true") {
+if (IN_CLUSTER) {
     winston.info("Using incluster connection ...");
     core = new k8s.Core(k8s.config.getInCluster());
 } else {
@@ -60,7 +66,6 @@ function collectMetrics(configuration) {
                             "labelNames": ["domain", "namespace", "pod"]
                         });
 
-
                         metrics_cache[name].set(metadatas, metric[key]);
                     }
                 });
@@ -76,6 +81,7 @@ function searchAMQPodsAndCollect(error, result) {
     }
 
     let brokersPodsNames = [];
+    let brokersPodsIps = [];
     let pods = result.items;
     winston.info("Found %s pods", pods.length);
     winston.info("Looking for AMQ Pods ...");
@@ -86,6 +92,7 @@ function searchAMQPodsAndCollect(error, result) {
                 if (port.name === "tcp" && port.containerPort === 61616) {
                     winston.info("Found a new AMQ broker with name %s", pod.metadata.name);
                     brokersPodsNames.push(pod.metadata.name);
+                    brokersPodsIps.push(pod.status.podIP);
                 }
             });
         }
@@ -94,6 +101,7 @@ function searchAMQPodsAndCollect(error, result) {
     let configuration = {
         "master": CLUSTER_IP,
         "token": TOKEN,
+        "port": CLUSTER_PORT,
         "namespaces": [
             {
                 "name": NAMESPACE,
@@ -101,6 +109,7 @@ function searchAMQPodsAndCollect(error, result) {
             }
         ]
     };
+
     collectMetrics(configuration);
 }
 
