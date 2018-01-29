@@ -89,7 +89,7 @@ function searchAMQPodsAndCollect(error, result) {
         let ports = pod.spec.containers[0].ports;
         if (ports) {
             _.each(ports, function (port) {
-                if (port.name === "tcp" && port.containerPort === 61616) {
+                if (port.name === "tcp" && port.containerPort === 61616 && pod.status.phase === "Running") {
                     winston.info("Found a new AMQ broker with name %s", pod.metadata.name);
                     brokersPodsNames.push(pod.metadata.name);
                     brokersPodsIps.push(pod.status.podIP);
