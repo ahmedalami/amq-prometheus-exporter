@@ -1,0 +1,179 @@
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: amq-prometheus-exporter
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: amq-prometheus-exporter
+    name: amq-prometheus-exporter
+  spec:
+    lookupPolicy:
+      local: false
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: amq-prometheus-exporter
+    name: amq-prometheus-exporter
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: amq-prometheus-exporter:latest
+    source:
+      git:
+        uri: https://github.com/ahmedalami/amq-prometheus-exporter.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nodejs:6
+          namespace: openshift
+      type: Source
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: amq-prometheus-exporter
+    name: amq-prometheus-exporter
+  spec:
+    replicas: 1
+    selector:
+      app: amq-prometheus-exporter
+      deploymentconfig: amq-prometheus-exporter
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: amq-prometheus-exporter
+          deploymentconfig: amq-prometheus-exporter
+      spec:
+        containers:
+        - env:
+          - name: TOKEN
+            value: ${TOKEN}
+          - name: IN_CLUSTER
+            value: "${IN_CLUSTER}"
+          - name: NAMESPACE
+            value: ${NAMESPACE}
+          image: amq-prometheus-exporter
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: amq-prometheus-exporter
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /metrics
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - amq-prometheus-exporter
+        from:
+          kind: ImageStreamTag
+          name: amq-prometheus-exporter:latest
+          namespace: activemq
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: amq-prometheus-exporter
+    name: amq-prometheus-exporter
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: amq-prometheus-exporter
+      deploymentconfig: amq-prometheus-exporter
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: amq-prometheus-exporter
+    labels:
+      app: amq-prometheus-exporter
+  spec:
+    port:
+      targetPort: 8080-tcp
+    to:
+      kind: Service
+      name: amq-prometheus-exporter
+  status:
+    {}
+parameters:
+  - description: authentication token.
+    name: TOKEN
+    required: true
+  - description: exporter is in the same cluster?
+    name: IN_CLUSTER
+    required: true
+    value: "true"
+  - description: namespace where amq lives
+    name: NAMESPACE
+    required: false
+    value: amq
