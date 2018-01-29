@@ -120,6 +120,10 @@ app.get('/metrics', function (req, res) {
     res.end(register.metrics());
 });
 
+app.get('/healthz', function (req, res) {
+    res.end("OK");
+});
+
 const COLLECT_PERIOD = process.env.COLLECT_PERIOD_SECONDS ? process.env.COLLECT_PERIOD_SECONDS * 1000 : 10000;
 winston.info("Setup metrics collection to %s seconds", COLLECT_PERIOD / 1000);
 setInterval(() => {
