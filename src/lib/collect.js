@@ -9,51 +9,12 @@ const unirest = require("unirest");
 const elasticsearch = require('elasticsearch');
 const mkdirp = require('mkdirp');
 const json2csv = require('json2csv');
+const string = require('string');
 const fs = require('fs');
 
 const DATA_DIR = __dirname + "/../../data";
 
-mkdirp.sync(DATA_DIR);
-
 const LIMIT = 5;
-
-const DEFAULT_FUNCTION = function (response, domain) {
-    let me = this;
-    let items = [];
-
-    if (domain.name.indexOf("*") !== -1) {
-        _.each(_.keys(response), function (key) {
-            let item = {
-                "objetName": key
-            };
-
-            _.each(domain.attributes, function (attribute) {
-                if (attribute.name && attribute.fn) {
-                    item[attribute.name] = attribute.fn(response[key][attribute.name]);
-                } else {
-                    item[attribute] = response[key][attribute];
-                }
-            });
-
-            items.push(item);
-        });
-    } else {
-        let item = {
-            "objetName": response.ObjectName ? response.ObjectName.objectName : domain.name
-        };
-        _.each(domain.attributes, function (attribute) {
-            if (attribute.name && attribute.fn) {
-                item[attribute.name] = attribute.fn(response[attribute.name]);
-            } else {
-                item[attribute] = response[attribute];
-            }
-        });
-
-        items.push(item);
-    }
-
-    return items;
-};
 
 const OBJECT_NAMES_DOMAINS = {
     "brokers": {
@@ -77,7 +38,8 @@ const OBJECT_NAMES_DOMAINS = {
             "JobSchedulerStoreLimit",
             "StorePercentUsage",
             "MaxMessageSize"
-        ]
+        ],
+        "discriminant": "broker_name"
     },
     "queues": {
         "name": "org.apache.activemq:type=Broker,brokerName=*,destinationType=Queue,destinationName=*",
@@ -111,7 +73,8 @@ const OBJECT_NAMES_DOMAINS = {
             "Name",
             "ProducerFlowControl",
             "CursorFull"
-        ]
+        ],
+        "discriminant": "destination_name"
     },
     "topics": {
         "name": "org.apache.activemq:type=Broker,brokerName=*,destinationType=Topic,destinationName=*",
@@ -144,11 +107,13 @@ const OBJECT_NAMES_DOMAINS = {
             "MaxMessageSize",
             "Name",
             "Subscriptions"
-        ]
+        ],
+        "discriminant": "destination_name"
     },
     "persistence": {
         "name": "org.apache.activemq:type=Broker,brokerName=*,service=PersistenceAdapter,instanceName=KahaDBPersistenceAdapter*",
-        "attributes": ["Size", "Transactions"]
+        "attributes": ["Size", "Transactions"],
+        "discriminant": "broker_name"
     },
     "health": {
         "name": "org.apache.activemq:type=Broker,brokerName=*,service=Health",
@@ -159,7 +124,8 @@ const OBJECT_NAMES_DOMAINS = {
                 }
                 return 0;
             }
-        }]
+        }],
+        "discriminant": "broker_name"
     },
     "classloading": {
         "name": "java.lang:type=ClassLoading",
@@ -224,7 +190,7 @@ const OBJECT_NAMES_DOMAINS = {
     }
 };
 
-const DEFAULT_METRICS_DOMAINS = _.keys(OBJECT_NAMES_DOMAINS);
+const DEFAULT_METRICS_DOMAINS = ["queues"] || _.keys(OBJECT_NAMES_DOMAINS);
 
 function getUrl(command) {
     return command.namespace + "/pods/https:" + command.pod + ":8778/proxy/jolokia" + "/read/" + OBJECT_NAMES_DOMAINS[command.domain].name;
@@ -240,7 +206,7 @@ module.exports = function (configuration, callback) {
                     "pod": pod,
                     "namespace": namespace.name,
                     "domain": domain
-                })
+                });
             });
         });
     });
@@ -257,7 +223,6 @@ module.exports = function (configuration, callback) {
                     let metrics = (OBJECT_NAMES_DOMAINS[command.domain].fn || DEFAULT_FUNCTION)(value, OBJECT_NAMES_DOMAINS[command.domain]);
 
                     done(null, {
-                        "@timestamp": new Date(),
                         "namespace": command.namespace,
                         "pod": command.pod,
                         "domain": command.domain,
@@ -269,6 +234,7 @@ module.exports = function (configuration, callback) {
             if (callback) {
                 callback(results);
             } else {
+                mkdirp.sync(DATA_DIR);
                 _.each(results, function (result) {
                     fs.appendFileSync(DATA_DIR + "/" + result.domain + ".log", JSON.stringify(result) + "\n");
                 });
