@@ -59,6 +59,26 @@ function collectMetrics(configuration) {
                         metadatas[key.toLowerCase()] = metric[key];
                     }
 
+                    if (metric[key] && Array.isArray(metric[key])) {
+                        metrics_cache[name] = metrics_cache[name] || new Gauge({
+                            "name": name,
+                            "help": key,
+                            "labelNames": ["domain", "namespace", "pod"]
+                        });
+
+                        metrics_cache[name].set(metadatas, metric[key].length);
+                    }
+
+                    if (metric[key] && typeof metric[key] === "boolean") {
+                        metrics_cache[name] = metrics_cache[name] || new Gauge({
+                            "name": name,
+                            "help": key,
+                            "labelNames": ["domain", "namespace", "pod"]
+                        });
+
+                        metrics_cache[name].set(metadatas, metric[key] ? 1 : 0);
+                    }
+
                     if (metric[key] && typeof metric[key] === "number") {
                         metrics_cache[name] = metrics_cache[name] || new Gauge({
                             "name": name,
