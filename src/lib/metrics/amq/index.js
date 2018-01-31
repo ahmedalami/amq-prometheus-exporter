@@ -58,6 +58,12 @@ module.exports = (client, register, config) => {
                     });
             },
             function (error, results) {
+                
+                if(error) {
+                    winston.error(error);
+                    return;
+                }
+                
                 results.forEach(result => {
                     let metrics = result.metrics;
                     let command = result.command;
