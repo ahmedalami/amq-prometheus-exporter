@@ -56,34 +56,40 @@ function updateAllMetrics() {
         let brokersPodsIps = [];
         let pods = result.items;
         winston.info("Found %s pods", pods.length);
-        winston.info("Looking for AMQ Pods ...");
+        winston.info("Looking for AMQ Pods. AMQ pods are gathered given the informations below : PORT(61616/TCP) with containers with Running phase");
         _.each(pods, function (pod) {
-            let ports = pod.spec.containers[0].ports;
-            if (ports) {
-                _.each(ports, function (port) {
-                    if (port.name === "tcp" && port.containerPort === 61616 && pod.status.phase === "Running") {
-                        winston.info("Found a new AMQ broker with name %s", pod.metadata.name);
-                        brokersPodsNames.push(pod.metadata.name);
-                        brokersPodsIps.push(pod.status.podIP);
-                    }
-                });
+            if (pod.metadata.name.indexOf("drainer") === -1 && pod.status.phase === "Running") {
+                let ports = pod.spec.containers[0].ports;
+                if (ports) {
+                    _.each(ports, function (port) {
+                        if (port.name === "tcp" && port.containerPort === 61616 && pod.status.containerStatuses[0].ready === true) {
+                            winston.info("Found a new AMQ broker with name %s", pod.metadata.name);
+                            brokersPodsNames.push(pod.metadata.name);
+                            brokersPodsIps.push(pod.status.podIP);
+                        }
+                    });
+                }
             }
         });
 
-        let configuration = {
-            "master": CLUSTER_IP,
-            "token": TOKEN,
-            "port": CLUSTER_PORT,
-            "namespaces": [
-                {
-                    "name": NAMESPACE,
-                    "pods": brokersPodsNames
-                }
-            ]
-        };
+        if (brokersPodsNames && brokersPodsNames.length > 0) {
+            let configuration = {
+                "master": CLUSTER_IP,
+                "token": TOKEN,
+                "port": CLUSTER_PORT,
+                "namespaces": [
+                    {
+                        "name": NAMESPACE,
+                        "pods": brokersPodsNames
+                    }
+                ]
+            };
 
-        domains.forEach(domain => domain(configuration));
-    })
+            domains.forEach(domain => domain(configuration));
+        } else {
+            winston.warn("No AMQ pods were found.");
+        }
+    });
 }
 
 updateAllMetrics();
