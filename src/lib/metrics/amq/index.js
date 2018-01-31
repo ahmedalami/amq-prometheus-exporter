@@ -52,24 +52,21 @@ module.exports = (client, register, config) => {
                     .get(url)
                     .headers({"Authorization": "Bearer " + configuration.token})
                     .end(function (response) {
-                    
-                    if(response.error) {
-                        winston.error(response.error);
-                        done(response.error);
-                    }
-                    
+                        if (response.error) {
+                            winston.error("Error while collecting metrics with command %j due to %s", command, response.error);
+                            return done(response.error);
+                        }
+
                         let value = JSON.parse(response.body).value;
                         let metrics = lib.extractMetrics(value, config);
                         done(null, {command, metrics});
                     });
             },
             function (error, results) {
-                
-                if(error) {
-                    winston.error(error);
+                if (error) {
                     return;
                 }
-                
+
                 results.forEach(result => {
                     let metrics = result.metrics;
                     let command = result.command;
