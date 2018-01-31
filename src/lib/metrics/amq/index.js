@@ -47,6 +47,7 @@ module.exports = (client, register, config) => {
             LIMIT,
             function (command, done) {
                 let url = lib.getUrl(configuration.master, configuration.port, command.namespace, command.pod, config.objectName);
+                winston.info(url);
                 unirest
                     .get(url)
                     .headers({"Authorization": "Bearer " + configuration.token})
