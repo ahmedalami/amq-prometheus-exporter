@@ -16,6 +16,8 @@ const CLUSTER_PORT = process.env.CLUSTER_PORT || process.env.KUBERNETES_PORT_443
 const NAMESPACE = process.env.NAMESPACE || 'amq';
 const TOKEN = process.env.TOKEN;
 
+winston.info("IN_CLUSTER=%s, CLUSTER_IP=%s, CLUSTER_PORT=%s, NAMESPACE=%s, TOKEN=%s", IN_CLUSTER, CLUSTER_IP, CLUSTER_PORT, NAMESPACE, TOKEN);
+
 if (!TOKEN) {
     throw new Error("Please provide an authentication token");
 }
