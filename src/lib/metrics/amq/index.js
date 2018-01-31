@@ -54,8 +54,8 @@ module.exports = (client, register, config) => {
                     .end(function (response) {
                     
                     if(response.error) {
-                        winston.error(error);
-                        done(error);
+                        winston.error(response.error);
+                        done(response.error);
                     }
                     
                         let value = JSON.parse(response.body).value;
