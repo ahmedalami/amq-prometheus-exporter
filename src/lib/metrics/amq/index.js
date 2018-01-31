@@ -52,6 +52,12 @@ module.exports = (client, register, config) => {
                     .get(url)
                     .headers({"Authorization": "Bearer " + configuration.token})
                     .end(function (response) {
+                    
+                    if(response.error) {
+                        winston.error(error);
+                        done(error);
+                    }
+                    
                         let value = JSON.parse(response.body).value;
                         let metrics = lib.extractMetrics(value, config);
                         done(null, {command, metrics});
