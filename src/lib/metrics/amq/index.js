@@ -98,7 +98,8 @@ module.exports = (client, register, config) => {
                             }
 
                             if (value) {
-                                gauges[(attribute.name || attribute).toLowerCase()].set(metadatas, value, Date.now());
+                                // Add timestamp Date.now()
+                                gauges[(attribute.name || attribute).toLowerCase()].set(metadatas, value);
                             }
                         });
                     });
